@@ -1,0 +1,28 @@
+{
+  "name": "use-network-request-queue",
+  "version": "1.0.0-beta.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "test": "vitest",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.4",
+    "@testing-library/react": "^14.1.2",
+    "@types/react": "^18.2.0",
+    "jsdom": "^22.1.0",
+    "typescript": "^5.0.0",
+    "vitest": "^0.34.6"
+  },
+  "dependencies": {
+    "react": "^18.2.0"
+  }
+}

@@ -1,0 +1,6 @@
+node_modules
+src
+tests
+__tests__
+vitest.config.ts
+.gitignore
