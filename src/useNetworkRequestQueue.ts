@@ -33,37 +33,30 @@ export function useNetworkRequestQueue() {
 
   // Function to process the queue when back online
   const processQueue = useCallback(async () => {
-    setQueue((currentQueue) => {
-      if (currentQueue.length === 0) return currentQueue;
+    let currentQueue = queue;
+    if (currentQueue.length === 0) return;
 
-      // Process all requests
-      const processRequests = async () => {
-        const remainingRequests: QueuedRequest[] = [];
-        for (const queuedRequest of currentQueue) {
-          try {
-            await queuedRequest.request();
-          } catch (error) {
-            // Only keep failed requests that haven't exceeded max retries
-            if (queuedRequest.retryCount < MAX_RETRIES) {
-              remainingRequests.push({
-                ...queuedRequest,
-                retryCount: queuedRequest.retryCount + 1
-              });
-            } else {
-              console.warn(`Request dropped after ${MAX_RETRIES} failed attempts`);
-            }
+    while (currentQueue.length > 0) {
+      const remainingRequests: QueuedRequest[] = [];
+      for (const queuedRequest of currentQueue) {
+        try {
+          await queuedRequest.request();
+        } catch (error) {
+          // Only keep failed requests that haven't exceeded max retries
+          if (queuedRequest.retryCount < MAX_RETRIES) {
+            remainingRequests.push({
+              ...queuedRequest,
+              retryCount: queuedRequest.retryCount + 1
+            });
+          } else {
+            console.warn(`Request dropped after ${MAX_RETRIES} failed attempts`);
           }
         }
-        setQueue(remainingRequests);
-      };
-
-      // Start processing in the background
-      processRequests();
-
-      // Return empty queue immediately
-      return [];
-    });
-  }, []); // No dependencies needed
+      }
+      setQueue(remainingRequests);
+      currentQueue = remainingRequests;
+    }
+  }, [queue]); // Add queue as dependency
 
   // Effect to track online/offline status
   useEffect(() => {

@@ -88,4 +88,32 @@ describe("useNetworkRequestQueue", () => {
     expect(mockRequest1.mock.invocationCallOrder[0])
       .toBeLessThan(mockRequest2.mock.invocationCallOrder[0]);
   });
+
+  test("should retry failed requests up to MAX_RETRIES times", async () => {
+    global._isOnline = false;
+    const { result } = renderHook(() => useNetworkRequestQueue());
+    const mockFailingRequest = vi.fn().mockRejectedValue(new Error("Network error"));
+    const consoleSpy = vi.spyOn(console, 'warn');
+
+    act(() => {
+      result.current.addRequest(mockFailingRequest);
+    });
+
+    expect(result.current.pendingRequests.length).toBe(1);
+
+    // Trigger retries by going online
+    await act(async () => {
+      global._isOnline = true;
+      window.dispatchEvent(new Event("online"));
+    });
+
+    // Wait for initial attempt and 3 retries
+    await waitFor(() => {
+      expect(mockFailingRequest).toHaveBeenCalledTimes(4); // Initial + 3 retries
+      expect(consoleSpy).toHaveBeenCalledWith("Request dropped after 3 failed attempts");
+      expect(result.current.pendingRequests.length).toBe(0);
+    });
+
+    consoleSpy.mockRestore();
+  });
 });
