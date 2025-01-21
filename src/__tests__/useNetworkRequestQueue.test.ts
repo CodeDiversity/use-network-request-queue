@@ -89,7 +89,7 @@ describe("useNetworkRequestQueue", () => {
       .toBeLessThan(mockRequest2.mock.invocationCallOrder[0]);
   });
 
-  test("should retry failed requests up to MAX_RETRIES times", async () => {
+  test("should try queued requests once when back online", async () => {
     global._isOnline = false;
     const { result } = renderHook(() => useNetworkRequestQueue());
     const mockFailingRequest = vi.fn().mockRejectedValue(new Error("Network error"));
@@ -101,19 +101,31 @@ describe("useNetworkRequestQueue", () => {
 
     expect(result.current.pendingRequests.length).toBe(1);
 
-    // Trigger retries by going online
+    // Try once when going back online
     await act(async () => {
       global._isOnline = true;
       window.dispatchEvent(new Event("online"));
     });
 
-    // Wait for initial attempt and 3 retries
     await waitFor(() => {
-      expect(mockFailingRequest).toHaveBeenCalledTimes(4); // Initial + 3 retries
-      expect(consoleSpy).toHaveBeenCalledWith("Request dropped after 3 failed attempts");
+      expect(mockFailingRequest).toHaveBeenCalledTimes(1); // Only tried once
+      expect(consoleSpy).toHaveBeenCalledWith('Request failed when retrying after coming back online');
       expect(result.current.pendingRequests.length).toBe(0);
     });
 
     consoleSpy.mockRestore();
+  });
+
+  test("should not queue failed requests when online", async () => {
+    const { result } = renderHook(() => useNetworkRequestQueue());
+    const mockFailingRequest = vi.fn().mockRejectedValue(new Error("Network error"));
+
+    await act(async () => {
+      // Expect the request to fail but not be queued
+      await expect(result.current.addRequest(mockFailingRequest)).rejects.toThrow("Network error");
+    });
+
+    expect(result.current.pendingRequests.length).toBe(0);
+    expect(mockFailingRequest).toHaveBeenCalledTimes(1);
   });
 });

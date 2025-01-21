@@ -24,10 +24,9 @@ export function useNetworkRequestQueue() {
   const addRequest = useCallback((request: () => Promise<any>) => {
     if (!navigator.onLine) {
       setQueue((prevQueue) => [...prevQueue, { request, retryCount: 0 }]);
+      return Promise.resolve(); // Resolve immediately when offline as request is queued
     } else {
-      request().catch(() =>
-        setQueue((prevQueue) => [...prevQueue, { request, retryCount: 0 }])
-      );
+      return request(); // Return the promise when online for error handling
     }
   }, []);
 
@@ -36,27 +35,16 @@ export function useNetworkRequestQueue() {
     let currentQueue = queue;
     if (currentQueue.length === 0) return;
 
-    while (currentQueue.length > 0) {
-      const remainingRequests: QueuedRequest[] = [];
-      for (const queuedRequest of currentQueue) {
-        try {
-          await queuedRequest.request();
-        } catch (error) {
-          // Only keep failed requests that haven't exceeded max retries
-          if (queuedRequest.retryCount < MAX_RETRIES) {
-            remainingRequests.push({
-              ...queuedRequest,
-              retryCount: queuedRequest.retryCount + 1
-            });
-          } else {
-            console.warn(`Request dropped after ${MAX_RETRIES} failed attempts`);
-          }
-        }
+    // Execute all queued requests once when back online
+    for (const queuedRequest of currentQueue) {
+      try {
+        await queuedRequest.request();
+      } catch (error) {
+        console.warn('Request failed when retrying after coming back online');
       }
-      setQueue(remainingRequests);
-      currentQueue = remainingRequests;
     }
-  }, [queue]); // Add queue as dependency
+    setQueue([]); // Clear the queue regardless of success/failure
+  }, [queue]);
 
   // Effect to track online/offline status
   useEffect(() => {
