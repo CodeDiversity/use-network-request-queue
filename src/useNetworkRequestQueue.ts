@@ -1,23 +1,33 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 /**
- * Represents a network request function that returns a Promise.
+ * Maximum number of retry attempts for failed requests
  */
-type NetworkRequest = () => Promise<any>;
+const MAX_RETRIES = 3;
+
+/**
+ * Represents a network request with retry tracking
+ */
+interface QueuedRequest {
+  request: () => Promise<any>;
+  retryCount: number;
+}
 
 /**
  * A custom React hook that queues network requests when offline and retries them when online.
  */
 export function useNetworkRequestQueue() {
-  const [queue, setQueue] = useState<NetworkRequest[]>([]);
+  const [queue, setQueue] = useState<QueuedRequest[]>([]);
   const [isOffline, setIsOffline] = useState<boolean>(!navigator.onLine);
 
   // Adds a request to the queue if offline, or executes it immediately if online
-  const addRequest = useCallback((request: NetworkRequest) => {
+  const addRequest = useCallback((request: () => Promise<any>) => {
     if (!navigator.onLine) {
-      setQueue((prevQueue: NetworkRequest[]) => [...prevQueue, request]);
+      setQueue((prevQueue) => [...prevQueue, { request, retryCount: 0 }]);
     } else {
-      request().catch(() => setQueue((prevQueue: NetworkRequest[]) => [...prevQueue, request]));
+      request().catch(() =>
+        setQueue((prevQueue) => [...prevQueue, { request, retryCount: 0 }])
+      );
     }
   }, []);
 
@@ -28,12 +38,20 @@ export function useNetworkRequestQueue() {
 
       // Process all requests
       const processRequests = async () => {
-        const remainingRequests: NetworkRequest[] = [];
-        for (const request of currentQueue) {
+        const remainingRequests: QueuedRequest[] = [];
+        for (const queuedRequest of currentQueue) {
           try {
-            await request();
+            await queuedRequest.request();
           } catch (error) {
-            remainingRequests.push(request); // Keep failed requests in queue
+            // Only keep failed requests that haven't exceeded max retries
+            if (queuedRequest.retryCount < MAX_RETRIES) {
+              remainingRequests.push({
+                ...queuedRequest,
+                retryCount: queuedRequest.retryCount + 1
+              });
+            } else {
+              console.warn(`Request dropped after ${MAX_RETRIES} failed attempts`);
+            }
           }
         }
         setQueue(remainingRequests);
