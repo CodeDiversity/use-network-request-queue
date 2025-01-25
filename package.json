@@ -1,6 +1,6 @@
 {
   "name": "use-network-request-queue-react",
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0-beta.4",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -9,6 +9,10 @@
   "scripts": {
     "test": "vitest",
     "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CodeDiversity/use-network-request-queue"
   },
   "keywords": [],
   "author": "",
