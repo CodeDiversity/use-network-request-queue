@@ -1,6 +1,6 @@
 {
   "name": "use-network-request-queue-react",
-  "version": "1.0.0-beta.4",
+  "version": "1.0.0-beta.5",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CodeDiversity/use-network-request-queue"
+    "url": "git+https://github.com/CodeDiversity/use-network-request-queue.git"
   },
   "keywords": [],
   "author": "",
